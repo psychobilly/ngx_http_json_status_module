@@ -1,38 +1,10 @@
 ngx_http_json_status_module
 ===========================
 
-機能
-----
-nginxのstatusをjsonで返却するモジュール
-
-組み込み
---------
-```bash
-./configure --add-module=./ngx_http_json_status_module
-```
-
-設定例
-------
-```
-server {
-  ...
-  location = /status {
-    status;
-  }
-}
-```
-
-参照
-----
-* [module guide](http://www.evanmiller.org/nginx-modules-guide.html)
-* [nginx plus](http://nginx.com/products/)
-* [nginx plus tips](http://qiita.com/harukasan/items/5123f797a876696b343e)
-* [nginx status](http://nginx.org/en/docs/http/ngx_http_status_module.html)
-* [開発手順](PROCEDUREofDEVELOPEMENT.md)
-* [build nginx](BUILD.md)
-
 仕様
 ----
+nginxのstatusをjson形式で返却するモジュール
+
 ### ディレクティブ
 ```
 syntax:	 status;
@@ -92,3 +64,30 @@ context: location
     }
 }
 ```
+
+組み込み
+--------
+```bash
+./configure --add-module=./ngx_http_json_status_module
+```
+
+設定例
+------
+```
+server {
+  ...
+  location = /status {
+    status;
+  }
+}
+```
+
+参照
+----
+* [module guide](http://www.evanmiller.org/nginx-modules-guide.html)
+* [nginx plus](http://nginx.com/products/)
+* [nginx plus tips](http://qiita.com/harukasan/items/5123f797a876696b343e)
+* [nginx status](http://nginx.org/en/docs/http/ngx_http_status_module.html)
+* [開発手順](PROCEDUREofDEVELOPEMENT.md)
+* [build nginx](BUILD.md)
+
