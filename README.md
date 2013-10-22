@@ -88,6 +88,5 @@ server {
 * [nginx plus](http://nginx.com/products/)
 * [nginx plus tips](http://qiita.com/harukasan/items/5123f797a876696b343e)
 * [nginx status](http://nginx.org/en/docs/http/ngx_http_status_module.html)
-* [開発手順](PROCEDUREofDEVELOPEMENT.md)
 * [build nginx](BUILD.md)
-
+* [開発手順(未)](PROCEDUREofDEVELOPEMENT.md)
