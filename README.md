@@ -15,7 +15,7 @@ context: location
 ### response
 ```json
 {
-    "version": 1,
+    "version": "1",
     "nginx_version": "1.5.3",
     "address": "127.0.0.1",
     "timestamp": 1377263206961,
@@ -90,3 +90,4 @@ server {
 * [nginx status](http://nginx.org/en/docs/http/ngx_http_status_module.html)
 * [build nginx](BUILD.md)
 * [開発手順(未)](PROCEDUREofDEVELOPEMENT.md)
+* [Development of modules for nginx](http://antoine.bonavita.free.fr/nginx_mod_dev_en.html)

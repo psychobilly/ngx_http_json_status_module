@@ -1,5 +1,6 @@
 /* -*- mode:c; coding:utf-8 -*- */
 
+#include <nginx.h>
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -22,8 +23,8 @@ static ngx_http_module_t ngx_http_json_status_module_ctx = {
   NULL,                              /* preconfiguration */
   NULL,                              /* postconfiguration */
 
-  NULL,                              /* create main configuration */
-  NULL,                              /* init main configuration */
+  ngx_http_json_status_create_main_conf, /* create main configuration */
+  ngx_http_json_status_init_main_conf,   /* init main configuration */
 
   NULL,                              /* create server configuration */
   NULL,                              /* merge server configuration */
@@ -47,6 +48,36 @@ ngx_module_t ngx_http_json_status_module = {
   NGX_MODULE_V1_PADDING
 };
 
+static void *
+ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
+{
+  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "%s #start.", __FUNCTION__);
+
+  ngx_http_json_status_main_conf_t *mcf;
+
+  mcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_json_status_main_conf_t));
+  if (mcf == NULL) {
+    return NULL;
+  }
+
+  if (gethostname(mcf->hostname, NGX_MAXHOSTNAMELEN) == -1) {
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "gethostname() failed");
+    return NULL;
+  }  
+
+  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "hostname:%s", &mcf->hostname);
+
+  return mcf;
+}
+
+static char *
+ngx_http_json_status_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "#start. %s:%d", __FUNCTION__, __LINE__);
+  return NGX_CONF_OK;
+}
+
+
 static ngx_int_t
 ngx_http_json_status_handler(ngx_http_request_t *r)
 {
@@ -69,7 +100,12 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
     return rc;
   }
 
-  size = sizeof("{}");
+  size = sizeof("{}")+
+    sizeof("\"version\": \"\",")+sizeof(NGX_HTTP_JSON_STATUS_MODULE_VERSION)+
+    sizeof("\"nginx_version\": \"\",")+sizeof(NGINX_VERSION)+
+    sizeof("\"address\": \"\",")+sizeof(u_char)+
+    sizeof("\"timestamp\": \"\",")+sizeof(u_char)
+    ;
 
   b = ngx_create_temp_buf(r->pool, size);
   if (b == NULL) {
@@ -79,7 +115,10 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   out.buf = b;
   out.next = NULL;
 
-  b->last = ngx_sprintf(b->last, "{}");
+  b->last = ngx_sprintf(b->last, "{"); /* contents start */
+  b->last = ngx_sprintf(b->last, "\"version\": \"%s\",", NGX_HTTP_JSON_STATUS_MODULE_VERSION); /* module version */
+  b->last = ngx_sprintf(b->last, "\"nginx_version\": \"%s\",", NGINX_VERSION); /* nginx version */
+  b->last = ngx_sprintf(b->last, "}"); /* contents end */
 
   b->memory = 1;
   b->flush = 1;
@@ -102,9 +141,13 @@ static char *
 ngx_http_json_status(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
   ngx_http_core_loc_conf_t  *clcf;
+  ngx_http_json_status_main_conf_t *mcf = conf;
 
   clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
   clcf->handler = ngx_http_json_status_handler;
+
+  mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_json_status_module);
+  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "#hostname: %s. %s:%d", &mcf->hostname, __FUNCTION__, __LINE__);
 
   return NGX_CONF_OK;
 }
