@@ -1,6 +1,8 @@
 ngx_http_json_status_module
 ===========================
 
+** 開発中 **
+
 仕様
 ----
 nginxのstatusをjson形式で返却するモジュール
