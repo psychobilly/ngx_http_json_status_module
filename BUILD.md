@@ -19,6 +19,7 @@ Ubuntu 12.10
 cat /etc/apt/sources.list.d/nginx.list
 deb http://nginx.org/packages/ubuntu/ quantal nginx
 deb-src http://nginx.org/packages/ubuntu/ quantal nginx
+wget -O - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
 sudo apt-get update
 # 依存があるので一回インストールしておく
 sudo apt-get install nginx
