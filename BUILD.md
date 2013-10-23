@@ -47,6 +47,7 @@ diff debian/source/{format.orig,format}
 ---
 > 3.0 (native)
 
+sudo apt-get -y install libssl-dev libpcre3-dev zlib1g-dev
 debuild -us -uc && debclean
 sudo dpkg -i ../nginx_1.4.3-1~quantalubuntu2_amd64.deb
 ```
