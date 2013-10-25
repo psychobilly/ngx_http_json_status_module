@@ -219,12 +219,15 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
       ngx_uint_t config_backup = 0;
       ngx_uint_t config_down = 0;
       for (k = 0; k < uscf->servers->nelts; k++) {
-	if (ngx_strtcmp(&peers->peer[j].name, &server[k].addrs[SERVER_ADDRS_ZERO].name) == 0) {
-	  config_down = server[k].down;
-	  config_backup = server[k].backup;
-	  break;
-	}
+        if (ngx_strtcmp(&peers->peer[j].name, &server[k].addrs[SERVER_ADDRS_ZERO].name) == 0) {
+          config_down = server[k].down;
+          config_backup = server[k].backup;
+          break;
+        }
       }
+
+      ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "#config: down=%d, backup=%d(%s:%d)", config_down, config_backup, __FUNCTION__, __LINE__);
+
 
       if (j>0) {b->last = ngx_sprintf(b->last, ",", &peers->peer[j].name);}
       b->last = ngx_sprintf(b->last, "{\"server\":\"%V\",\"backup\":\"%d\",\"weight\":\"%d\",\"state\":\"%s\",\"active\":\"%s\",\"keepalive\":\"%s\",\"requests\":\"%s\",\"responses\":%s,\"sent\":\"%s\",\"received\":\"%s\",\"fails\":\"%d\",\"unavail\":\"%s\",\"health_checks\":%s,\"downtime\":\"%s\",\"downstart\":\"%s\"}",
