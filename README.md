@@ -1,8 +1,8 @@
 ngx_http_json_status_module
 ===========================
 
-**リポジトリ変更**
-[new repository](http://git.psychobil.ly/)
+**リポジトリ変更**  
+[new repository](http://git.psychobil.ly/ngx_http_json_status_module)
 
 仕様
 ----
