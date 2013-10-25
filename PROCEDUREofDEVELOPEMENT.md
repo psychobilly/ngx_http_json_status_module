@@ -218,7 +218,6 @@ ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
 
   return jsmcf;
 }
-
 static char *
 ngx_http_json_status_init_main_conf(ngx_conf_t *cf, void *conf)
 {
