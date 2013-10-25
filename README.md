@@ -15,6 +15,7 @@ context: location
 ```
 
 ### response
+* 各要素の意味は[こちら](http://nginx.com/download/newrelic/newrelic_nginx_agent.tar.gz)も参照にする
 ```json
 {
     "version": "1",
