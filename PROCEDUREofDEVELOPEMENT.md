@@ -119,11 +119,8 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   ngx_int_t    rc;
   ngx_chain_t  out;
 
-  ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "#start. %s:%d", __FUNCTION__, __LINE__);
-
   /* GET or HEAD only */
   if (r->method != NGX_HTTP_GET && r->method != NGX_HTTP_HEAD) {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "method = %d: GET = %d,HEAD = %d", r->method, NGX_HTTP_GET, NGX_HTTP_HEAD);
     return NGX_HTTP_NOT_ALLOWED;
   }
 
@@ -155,7 +152,6 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   r->headers_out.content_length_n = b->last - b->pos;
   rc = ngx_http_send_header(r);
   if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "#return. %s:%d", __FUNCTION__, __LINE__);
     return rc;
   }
 
@@ -178,6 +174,7 @@ static void *ngx_http_json_status_create_main_conf(ngx_conf_t *cf);
 ### ngx_http_json_status_module.c
 * ngx_http_json_status_module_ctxのcreate_main_confに構造体を生成する関数を指定
 * ngx_http_json_status_create_main_confでhostnameとip addressを取得してセットする
+* 今回はinit_main_conf使用しないけど一応用意しておいた
 ```c
 static ngx_http_module_t ngx_http_json_status_module_ctx = {
   NULL,                              /* preconfiguration */
@@ -196,8 +193,6 @@ static ngx_http_module_t ngx_http_json_status_module_ctx = {
 static void *
 ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
 {
-  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "%s #start.", __FUNCTION__);
-
   ngx_http_json_status_main_conf_t *jsmcf;
   struct hostent *host;
 
@@ -221,8 +216,12 @@ ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
 	      (BYTE)*(host->h_addr + 2),
 	      (BYTE)*(host->h_addr + 3));
 
-  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "hostname:%s, address:%s", &jsmcf->hostname, jsmcf->addr);
-
   return jsmcf;
+}
+
+static char *
+ngx_http_json_status_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+  return NGX_CONF_OK;
 }
 ```
