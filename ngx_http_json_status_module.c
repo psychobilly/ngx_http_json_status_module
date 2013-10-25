@@ -197,7 +197,7 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   b->last = ngx_sprintf(b->last, "\"version\":\"%s\",", NGX_HTTP_JSON_STATUS_MODULE_VERSION); /* module version */
   b->last = ngx_sprintf(b->last, "\"nginx_version\":\"%s\",", NGINX_VERSION);
   b->last = ngx_sprintf(b->last, "\"address\":\"%s\",", jsmcf->addr);
-  b->last = ngx_sprintf(b->last, "\"timestamp\":\"%ld\",", now);
+  b->last = ngx_sprintf(b->last, "\"timestamp\":\"%l\",", now);
   b->last = ngx_sprintf(b->last, "\"connections\":{\"accepted\":\"%uA\",\"dropped\":\"%uA\",\"active\":\"%uA\",\"idle\":\"%uA\",\"counter\":\"%uA\"},", ap, ap-hn, ac, wa, acc);
   b->last = ngx_sprintf(b->last, "\"requests\":{\"total\":\"%uA\",\"current\":\"%uA\"},", rq, rd+wr);
   b->last = ngx_sprintf(b->last, "\"upstreams\":{");
