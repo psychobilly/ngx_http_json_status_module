@@ -90,5 +90,5 @@ server {
 * [nginx plus tips](http://qiita.com/harukasan/items/5123f797a876696b343e)
 * [nginx status](http://nginx.org/en/docs/http/ngx_http_status_module.html)
 * [build nginx](BUILD.md)
-* [開発手順(未)](PROCEDUREofDEVELOPEMENT.md)
+* [開発手順](PROCEDUREofDEVELOPEMENT.md)
 * [Development of modules for nginx](http://antoine.bonavita.free.fr/nginx_mod_dev_en.html)
