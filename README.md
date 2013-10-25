@@ -1,6 +1,9 @@
 ngx_http_json_status_module
 ===========================
 
+**リポジトリ変更**
+[new repository](http://git.psychobil.ly/)
+
 仕様
 ----
 nginxのstatusをjson形式で返却するモジュール
