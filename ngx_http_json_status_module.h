@@ -1,5 +1,9 @@
 /* -*- mode:c; coding:utf-8 -*- */
 
+#ifndef NGX_STAT_STUB
+#define NGX_STAT_STUB
+#endif
+
 #ifndef _NGX_HTTP_JSON_STATUS_MODULE_H_INCLUDED_
 #define _NGX_HTTP_JSON_STATUS_MODULE_H_INCLUDED_
 

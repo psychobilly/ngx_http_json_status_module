@@ -183,7 +183,11 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   rq = *ngx_stat_requests;
   rd = *ngx_stat_reading;
   wr = *ngx_stat_writing;
-  wa = *ngx_stat_waiting;
+#if nginx_version >= 1003000
+  wa = *ngx_stat_waiting; // ver1.4から？
+#else
+  wa = ac - (rd + wr);
+#endif
 
 #ifdef DYNAMIC_ALLOCATE
   b->pos = (u_char *) "{";
