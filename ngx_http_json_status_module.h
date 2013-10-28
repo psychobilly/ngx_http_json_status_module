@@ -14,8 +14,9 @@ typedef unsigned char BYTE;
 typedef struct ngx_http_json_status_main_conf_s ngx_http_json_status_main_conf_t;
 
 struct  ngx_http_json_status_main_conf_s {
-  char            hostname[NGX_MAXHOSTNAMELEN];
-  u_char          addr[16]; /* xxx.xxx.xxx.xxx\0 */
+  char    hostname[NGX_MAXHOSTNAMELEN];
+  u_char  addr[16]; /* xxx.xxx.xxx.xxx\0 */
+  size_t  contents_size;
 };
 
 static char *ngx_http_json_status(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);

@@ -6,8 +6,6 @@
 #include <ngx_http.h>
 #include "ngx_http_json_status_module.h"
 
-/* #define DYNAMIC_ALLOCATE 1 // test */
-
 static ngx_command_t
 ngx_http_json_status_commands[] = {
   {
@@ -56,11 +54,29 @@ ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
   ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "%s #start.", __FUNCTION__);
 
   ngx_http_json_status_main_conf_t *jsmcf;
-  struct hostent *host;
 
   jsmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_json_status_main_conf_t));
   if (jsmcf == NULL) {
     return NULL;
+  }
+
+  return jsmcf;
+}
+
+static char *
+ngx_http_json_status_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "#start. %s:%d", __FUNCTION__, __LINE__);
+
+  ngx_http_json_status_main_conf_t *jsmcf;
+  ngx_http_upstream_main_conf_t    *umcf;
+  struct hostent                   *host;
+  ngx_uint_t                        i;
+
+  jsmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_json_status_module);
+  umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
+  if (jsmcf == NULL || umcf == NULL) {
+    return NGX_CONF_ERROR;
   }
 
   if (gethostname(jsmcf->hostname, NGX_MAXHOSTNAMELEN) == -1) {
@@ -80,23 +96,57 @@ ngx_http_json_status_create_main_conf(ngx_conf_t *cf)
 
   ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "hostname:%s, address:%s", &jsmcf->hostname, jsmcf->addr);
 
-  return jsmcf;
-}
+  /* upstreamsのサイズ計算 */
+  size_t upstream_size = sizeof("\"upstreams\":{},");
+  for (i = 0; i < umcf->upstreams.nelts; i++) {
+    ngx_http_upstream_srv_conf_t *uscf   = ((ngx_http_upstream_srv_conf_t **)umcf->upstreams.elts)[i];
+    ngx_http_upstream_rr_peers_t *peers  = uscf->peer.data;
+    upstream_size += sizeof("\"\":[]")+sizeof(uscf->host)+ // upstream name
+      (sizeof("{\"server\":\"\",\"backup\":\"\",\"weight\":\"\",\"state\":\"\",\"active\":\"\",\"keepalive\":\"\",\"requests\":\"\",\"responses\":\"\",\"sent\":\"\",\"received\":\"\",\"fails\":\"\",\"unavail\":\"\",\"health_checks\":\"\",\"downtime\":\"\",\"downstart\":\"\"}")+
+       sizeof("{\"total\":\"\",\"1xx\":\"\",\"2xx\":\"\",\"3xx\":\"\",\"4xx\":\"\",\"5xx\":\"\"}")+ // responses
+       sizeof("{\"checks\":\"\",\"fails\":\"\",\"unhealthy\":\"\",\"last_passed\":\"\"}")+ // health_checks
+       //sizeof(ngx_uint_t)*10+ // responses + health_checks values
+       sizeof("N/A")*10+     // responses + health_checks values (暫定)
+       sizeof(ngx_str_t)*1+  // server
+       sizeof(ngx_uint_t)*3+ // backup + weight + fails
+       sizeof("unhealthy")+  // satte
+       sizeof("N/A")*8       // etc(暫定)
+       )*peers->number
+      ;
+  }
 
-static char *
-ngx_http_json_status_init_main_conf(ngx_conf_t *cf, void *conf)
-{
-  ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, "#start. %s:%d", __FUNCTION__, __LINE__);
+  /* 合計 */
+  jsmcf->contents_size = sizeof("{}")+
+    /* server info */
+    sizeof("\"version\":\"\",")+sizeof(NGX_HTTP_JSON_STATUS_MODULE_VERSION)+
+    sizeof("\"nginx_version\":\"\",")+sizeof(NGINX_VERSION)+
+    sizeof("\"address\":\"\",")+sizeof(jsmcf->addr)+
+    sizeof("\"timestamp\":\"\",")+sizeof(time_t)+
+    /* connections */
+    sizeof("\"connections\":{},")+
+    sizeof("\"accepted\":\"\",")+NGX_ATOMIC_T_LEN+
+    sizeof("\"dropped\":\"\",")+NGX_ATOMIC_T_LEN+ // c_dropped = c_accepted.to_i - handled.to_i (newrelic_nginx_agent参照)
+    sizeof("\"active\":\"\",")+NGX_ATOMIC_T_LEN+
+    sizeof("\"idle\":\"\",")+NGX_ATOMIC_T_LEN+
+    sizeof("\"counter\":\"\",")+NGX_ATOMIC_T_LEN+
+    /* requests */
+    sizeof("\"requests\":{},")+
+    sizeof("\"total\":\"\",")+NGX_ATOMIC_T_LEN+
+    sizeof("\"current\":\"\"")+NGX_ATOMIC_T_LEN+ // r_current = c_reading.to_i + c_writing.to_i (newrelic_nginx_agent参照)
+    /* upstreams */
+    upstream_size+
+    /* terminate */
+    sizeof("\0")
+    ;
+
   return NGX_CONF_OK;
 }
-
 
 static ngx_int_t
 ngx_http_json_status_handler(ngx_http_request_t *r)
 {
   ngx_http_upstream_main_conf_t    *umcf;
   ngx_http_json_status_main_conf_t *jsmcf;
-  size_t                            size;
   ngx_buf_t                        *b;
   ngx_int_t                         rc;
   ngx_chain_t                       out;
@@ -121,57 +171,10 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
     return rc;
   }
 
-#ifdef DYNAMIC_ALLOCATE
-  b = ngx_calloc_buf(r->pool);
-#else
-  /* upstreamsのサイズ計算 */
-  size_t upstream_size = sizeof("\"upstreams\":{},");
-  for (i = 0; i < umcf->upstreams.nelts; i++) {
-    ngx_http_upstream_srv_conf_t *uscf   = ((ngx_http_upstream_srv_conf_t **)umcf->upstreams.elts)[i];
-    ngx_http_upstream_rr_peers_t *peers  = uscf->peer.data;
-    upstream_size += sizeof("\"\":[]")+sizeof(uscf->host)+ // upstream name
-      (sizeof("{\"server\":\"\",\"backup\":\"\",\"weight\":\"\",\"state\":\"\",\"active\":\"\",\"keepalive\":\"\",\"requests\":\"\",\"responses\":\"\",\"sent\":\"\",\"received\":\"\",\"fails\":\"\",\"unavail\":\"\",\"health_checks\":\"\",\"downtime\":\"\",\"downstart\":\"\"}")+
-       sizeof("{\"total\":\"\",\"1xx\":\"\",\"2xx\":\"\",\"3xx\":\"\",\"4xx\":\"\",\"5xx\":\"\"}")+ // responses
-       sizeof("{\"checks\":\"\",\"fails\":\"\",\"unhealthy\":\"\",\"last_passed\":\"\"}")+ // health_checks
-       //sizeof(ngx_uint_t)*10+ // responses + health_checks values
-       sizeof("N/A")*10+     // responses + health_checks values (暫定)
-       sizeof(ngx_str_t)*1+  // server
-       sizeof(ngx_uint_t)*3+ // backup + weight + fails
-       sizeof("unhealthy")+  // satte
-       sizeof("N/A")*8       // etc(暫定)
-       )*peers->number
-      ;
-  }
-
-  /* 合計 */
-  size = sizeof("{}")+
-    /* server info */
-    sizeof("\"version\":\"\",")+sizeof(NGX_HTTP_JSON_STATUS_MODULE_VERSION)+
-    sizeof("\"nginx_version\":\"\",")+sizeof(NGINX_VERSION)+
-    sizeof("\"address\":\"\",")+sizeof(jsmcf->addr)+
-    sizeof("\"timestamp\":\"\",")+sizeof(time_t)+
-    /* connections */
-    sizeof("\"connections\":{},")+
-    sizeof("\"accepted\":\"\",")+NGX_ATOMIC_T_LEN+
-    sizeof("\"dropped\":\"\",")+NGX_ATOMIC_T_LEN+ // c_dropped = c_accepted.to_i - handled.to_i (newrelic_nginx_agent参照)
-    sizeof("\"active\":\"\",")+NGX_ATOMIC_T_LEN+
-    sizeof("\"idle\":\"\",")+NGX_ATOMIC_T_LEN+
-    sizeof("\"counter\":\"\",")+NGX_ATOMIC_T_LEN+
-    /* requests */
-    sizeof("\"requests\":{},")+
-    sizeof("\"total\":\"\",")+NGX_ATOMIC_T_LEN+
-    sizeof("\"current\":\"\"")+NGX_ATOMIC_T_LEN+ // r_current = c_reading.to_i + c_writing.to_i (newrelic_nginx_agent参照)
-    /* upstreams */
-    upstream_size+
-    /* terminate */
-    sizeof("\0")
-    ;
-  b = ngx_create_temp_buf(r->pool, size);
-#endif
+  b = ngx_create_temp_buf(r->pool, jsmcf->contents_size);
   if (b == NULL) {
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
   }
-
   out.buf = b;
   out.next = NULL;
 
@@ -183,16 +186,12 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
   rq = *ngx_stat_requests;
   rd = *ngx_stat_reading;
   wr = *ngx_stat_writing;
-#if nginx_version >= 1003000
-  wa = *ngx_stat_waiting; // ver1.4から？
+#if nginx_version >= 1004001 /* 1.4.1から(http://lxr.evanmiller.org/http/ident?i=ngx_stat_waiting) */
+  wa = *ngx_stat_waiting;
 #else
   wa = ac - (rd + wr);
 #endif
 
-#ifdef DYNAMIC_ALLOCATE
-  b->pos = (u_char *) "{";
-  b->last = b->pos + sizeof("{") - 1;
-#else
   b->last = ngx_sprintf(b->last, "{"); /* contents start */
   b->last = ngx_sprintf(b->last, "\"version\":\"%s\",", NGX_HTTP_JSON_STATUS_MODULE_VERSION); /* module version */
   b->last = ngx_sprintf(b->last, "\"nginx_version\":\"%s\",", NGINX_VERSION);
@@ -228,7 +227,6 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
 
       ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "#config: down=%d, backup=%d(%s:%d)", config_down, config_backup, __FUNCTION__, __LINE__);
 
-
       if (j>0) {b->last = ngx_sprintf(b->last, ",", &peers->peer[j].name);}
       b->last = ngx_sprintf(b->last, "{\"server\":\"%V\",\"backup\":\"%d\",\"weight\":\"%d\",\"state\":\"%s\",\"active\":\"%s\",\"keepalive\":\"%s\",\"requests\":\"%s\",\"responses\":%s,\"sent\":\"%s\",\"received\":\"%s\",\"fails\":\"%d\",\"unavail\":\"%s\",\"health_checks\":%s,\"downtime\":\"%s\",\"downstart\":\"%s\"}",
 			    &peers->peer[j].name,
@@ -254,14 +252,11 @@ ngx_http_json_status_handler(ngx_http_request_t *r)
 
   b->last = ngx_sprintf(b->last, "}");
   b->last = ngx_sprintf(b->last, "}"); /* contents end */
-#endif
 
   b->memory = 1;
   b->flush = 1;
   b->last_buf = 1;
   b->last_in_chain = 1;
-
-  ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "#length %d %d", size, sizeof(b));
 
   ngx_str_set(&r->headers_out.content_type, "application/json; charset=utf-8");
   r->headers_out.status = NGX_HTTP_OK;
